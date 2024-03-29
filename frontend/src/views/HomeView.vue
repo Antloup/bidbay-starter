@@ -5,13 +5,38 @@ export default {
       products: [],
       loading: true,
       error: false,
-      filterValue: ''
+      filterValue: '',
+      sortKey: 'nom'
     };
   },
   mounted() {
     this.fetchProducts();
   },
   methods: {
+    setSortKey(key) {
+  this.sortKey = key;
+  this.products.sort((a, b) => {
+    if (this.sortKey === 'name') {
+      return a.name.localeCompare(b.name);
+    } else if (this.sortKey === 'price') {
+      const lastBidA = this.getLastBid(a);
+      const lastBidB = this.getLastBid(b);
+
+      if (lastBidA === 'Aucune enchère') return 1;
+      if (lastBidB === 'Aucune enchère') return -1;
+
+      return lastBidA - lastBidB;
+    }
+  });
+},
+
+      getLastBid(product) {
+    if (product.bids && product.bids.length > 0) {
+      return product.bids[0].price;
+    }
+    return product.originalPrice; 
+  },
+
     fetchProducts() {
       fetch('http://localhost:3000/api/products')
         .then(response => {
@@ -70,14 +95,14 @@ export default {
             aria-expanded="false"
             data-test-sorter
           >
-            Trier par nom
+            Trier par {{sortKey}}
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
             <li>
-              <a class="dropdown-item" href="#"> Nom </a>
+              <a class="dropdown-item" href="#" @click.prevent="setSortKey('name')"> Nom </a>
             </li>
             <li>
-              <a class="dropdown-item" href="#" data-test-sorter-price>
+              <a class="dropdown-item" href="#" @click.prevent="setSortKey('price')" data-test-sorter-price>
                 Prix
               </a>
             </li>
@@ -125,13 +150,18 @@ export default {
                 data-test-product-seller
                 :to="{ name: 'User', params: { userId: product.sellerId } }"
               >
-                {{ product.seller }}
+                {{ product.seller.username }}
               </RouterLink>
             </p>
             <p class="card-text" data-test-product-date>
               En cours jusqu'au {{ product.endDate }}
             </p>
-            <p class="card-text" data-test-product-price>Prix actuel : {{ product.price }} €</p>
+
+            <p class="card-text" data-test-product-price>Prix de Base : {{ product.originalPrice }} €</p>
+            <p class="card-text" data-test-product-price>
+              {{ product.bids.length === 0 ? 'Commencer l\'enchère à ' + product.originalPrice + ' €' : 'Dernière enchère :' + getLastBid(product) + ' €' }}
+            </p>
+
           </div>
         </div>
       </div>

@@ -5,12 +5,25 @@ import { getDetails } from '../validators/index.js'
 
 const router = express.Router()
 
-router.get('/api/products', async (req, res, next) => {
+router.get('/api/products', async (req, res) => {
   try {
-    const products = await Product.findAll();
-    res.status(200).json(products);
+    const products = await Product.findAll({
+      include: [
+        {
+          model: Bid, 
+          as: 'bids', 
+        },
+        {
+          model: User,
+          as: 'seller',
+          attributes: ['id', 'username'], 
+        },
+      ],
+    });
+    res.json(products);
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+    console.error(error);
+    res.status(500).send('An error occurred');
   }
 });
 
