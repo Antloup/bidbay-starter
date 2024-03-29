@@ -1,23 +1,46 @@
-<script setup lang="ts">
-import { ref, computed } from "vue";
-
-const loading = ref(false);
-const error = ref(false);
-
-async function fetchProducts() {
-  loading.value = true;
-  error.value = false;
-
-  try {
-  } catch (e) {
-    error.value = true;
-  } finally {
-    loading.value = false;
+<script>
+export default {
+  data() {
+    return {
+      products: [],
+      loading: true,
+      error: false,
+      filterValue: ''
+    };
+  },
+  mounted() {
+    this.fetchProducts();
+  },
+  methods: {
+    fetchProducts() {
+      fetch('http://localhost:3000/api/products')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.text();
+        })
+        .then(data => {
+          if (data) {
+            this.products = JSON.parse(data);
+          }
+          this.loading = false;
+        })
+        .catch(error => {
+          console.error(error);
+          this.loading = false;
+          this.error = true;
+        });
+    },
+    filterProducts() {
+      return this.products.filter(product => {
+        return product.name.toLowerCase().includes(this.filterValue.toLowerCase());
+      });
+    }
   }
-}
-
-fetchProducts();
+};
 </script>
+
 
 <template>
   <div>
@@ -33,6 +56,7 @@ fetchProducts();
               class="form-control"
               placeholder="Filtrer par nom"
               data-test-filter
+              v-model="filterValue"
             />
           </div>
         </form>
@@ -72,43 +96,46 @@ fetchProducts();
       Une erreur est survenue lors du chargement des produits.
     </div>
     <div class="row">
-      <div class="col-md-4 mb-4" v-for="i in 10" data-test-product :key="i">
+      <div class="col-md-4 mb-4" v-for="product in filterProducts()" :key="product.id" data-test-product>
         <div class="card">
-          <RouterLink :to="{ name: 'Product', params: { productId: 'TODO' } }">
+          <RouterLink :to="{ name: 'Product', params: { productId: product.id } }">
             <img
-              src="https://picsum.photos/id/403/512/512"
+              :src="product.picture"
               data-test-product-picture
               class="card-img-top"
             />
           </RouterLink>
           <div class="card-body">
+            <img :src="product.pictureUrl" data-test-product-picture class="card-img-top" />
+
             <h5 class="card-title">
               <RouterLink
                 data-test-product-name
-                :to="{ name: 'Product', params: { productId: 'TODO' } }"
+                :to="{ name: 'Product', params: { productId: product.id } }"
               >
-                Machine à écrire
+                {{ product.name }}
               </RouterLink>
             </h5>
             <p class="card-text" data-test-product-description>
-              Machine à écrire vintage en parfait état de fonctionnement
+              {{ product.description }}
             </p>
             <p class="card-text">
               Vendeur :
               <RouterLink
                 data-test-product-seller
-                :to="{ name: 'User', params: { userId: 'TODO' } }"
+                :to="{ name: 'User', params: { userId: product.sellerId } }"
               >
-                alice
+                {{ product.seller }}
               </RouterLink>
             </p>
             <p class="card-text" data-test-product-date>
-              En cours jusqu'au 05/04/2026
+              En cours jusqu'au {{ product.endDate }}
             </p>
-            <p class="card-text" data-test-product-price>Prix actuel : 42 €</p>
+            <p class="card-text" data-test-product-price>Prix actuel : {{ product.price }} €</p>
           </div>
         </div>
       </div>
     </div>
   </div>
 </template>
+      
